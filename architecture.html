@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>APIM Credential Manager broker: what we built and proved</title>
+<style>
+:root{
+  --bg:#fdfaf3; --ink:#1d2433; --mut:#5b6577;
+  --a:#dbeafe; --a-line:#7fb0e8; --b:#fde4d0; --b-line:#f0a36b; --lav:#ece0f7; --lav-line:#b891e0;
+  --ok:#2e9e5b; --bad:#d64545; --warn:#e0a21a; --pkt:#2563eb;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+header{padding:22px 32px 6px}
+h1{margin:0;font-size:28px;letter-spacing:-.3px}
+h1 span{font-weight:400}
+.sub{color:var(--mut);margin-top:4px}
+.wrap{padding:8px 32px 32px;max-width:1500px;margin:auto}
+.band{border-radius:18px;padding:14px 16px 10px;margin:10px 0}
+.bandA{background:var(--a);border:1.5px solid var(--a-line)}
+.tag{display:inline-flex;align-items:center;gap:8px;font-weight:700;background:#cfe3fb;border-radius:12px;padding:6px 12px}
+.tag i{font-style:normal;background:#1d6fb8;color:#fff;border-radius:50%;width:24px;height:24px;display:grid;place-items:center;font-size:13px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 4px}
+.seg button,.ctl button{font:inherit;border:1.5px solid #9db8d8;background:#fff;color:var(--ink);padding:6px 12px;cursor:pointer}
+.seg{display:inline-flex}
+.seg button{border-radius:0;margin-left:-1.5px}
+.seg button:first-child{border-radius:10px 0 0 10px;margin-left:0}
+.seg button:last-child{border-radius:0 10px 10px 0}
+.seg button[aria-pressed=true]{background:#1d6fb8;color:#fff;border-color:#1d6fb8}
+.ctl button{border-radius:10px}
+.ctl button:hover,.seg button:hover{filter:brightness(.97)}
+button:focus-visible{outline:3px solid #f59e0b;outline-offset:2px}
+.caption{min-height:62px;background:#fff;border:1.5px solid #b8cbe4;border-radius:12px;padding:10px 14px;margin-top:6px}
+.caption b{display:block}
+.caption code{background:#eef3fa;padding:1px 5px;border-radius:5px;font-size:13px}
+svg{width:100%;height:auto;display:block}
+.node rect.box{fill:#fff;stroke:#8aa4c4;stroke-width:2;rx:14}
+.node.on rect.box{stroke:var(--pkt);stroke-width:3.5;filter:drop-shadow(0 0 7px rgba(37,99,235,.45))}
+.node.bad rect.box{stroke:var(--bad);stroke-width:3.5;filter:drop-shadow(0 0 7px rgba(214,69,69,.5))}
+.node.good rect.box{stroke:var(--ok);stroke-width:3.5}
+.nt{font-weight:700;font-size:15px;fill:var(--ink)}
+.ns{font-size:12px;fill:var(--mut)}
+.chip rect{fill:#f4f8ff;stroke:#9db8d8;stroke-width:1.5;rx:9}
+.chip.on rect{fill:#dbe8ff;stroke:var(--pkt);stroke-width:3}
+.chip.bad rect{fill:#ffe1e1;stroke:var(--bad);stroke-width:3}
+.chip.good rect{fill:#dff5e6;stroke:var(--ok);stroke-width:3}
+.chip text{font-size:12px;font-weight:600;fill:var(--ink)}
+.edge{fill:none;stroke:#b6c6dc;stroke-width:3;stroke-linecap:round;stroke-dasharray:2 7}
+.edge.live{stroke:var(--pkt);stroke-dasharray:none}
+.edge.red{stroke:var(--bad);stroke-dasharray:none}
+.pkt circle{fill:var(--pkt);filter:drop-shadow(0 0 6px rgba(37,99,235,.7))}
+.pkt.red circle{fill:var(--bad);filter:drop-shadow(0 0 6px rgba(214,69,69,.7))}
+.pkt rect{fill:#fff;stroke:var(--pkt);stroke-width:1.5;rx:8}
+.pkt.red rect{stroke:var(--bad)}
+.pkt text{font-size:12px;font-weight:700;fill:var(--ink)}
+.life{fill:#fff7d6;stroke:#e8c75a;stroke-width:1.5}
+.life-t{font-size:12px;font-weight:700;fill:#6b5200}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:14px;margin-top:14px}
+.card{border-radius:16px;padding:14px 16px;border:1.5px solid}
+.card h3{margin:0 0 6px;font-size:16px}
+.c-ok{background:#e4f6ea;border-color:#8ecfa2}
+.c-warn{background:#fff3cf;border-color:#e8c75a}
+.c-lav{background:var(--lav);border-color:var(--lav-line)}
+.c-b{background:var(--b);border-color:var(--b-line)}
+.card ul{margin:6px 0 0;padding-left:18px}
+.card li{margin:3px 0}
+.pill{display:inline-block;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:700;margin-right:6px}
+.p-ok{background:#2e9e5b;color:#fff}.p-pend{background:#e0a21a;color:#fff}.p-no{background:#8b94a6;color:#fff}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border:1px solid #b8cbe4;padding:6px 8px;text-align:left;vertical-align:top}
+th{background:#e7f0fb}
+td.s{font-weight:700;white-space:nowrap}
+.s401{background:#fbd5d0}.s403{background:#fde0bf}.s424{background:#eee}
+.stripB{background:var(--b);border:1.5px dashed var(--b-line);border-radius:18px;padding:12px 16px;margin-top:12px;opacity:.9}
+.stripB .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
+.stripB .st{background:#fff;border:1.5px solid var(--b-line);border-radius:10px;padding:6px 10px;font-weight:600}
+.stripB .ar{color:#b06a2f;font-weight:700}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin:6px 2px;font-size:13px;color:var(--mut)}
+.legend span::before{content:"";display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.l1::before{background:var(--pkt)}.l2::before{background:var(--bad)}.l3::before{background:#e8c75a}
+@media (prefers-reduced-motion:reduce){.pkt{display:none}}
+</style>
+</head>
+<body>
+<header>
+  <h1>APIM Credential Manager broker <span>&mdash; Foundry agent to Microsoft Graph</span></h1>
+  <div class="sub">What was actually built and tested in <code>rg-apim-cm-poc</code>. Baseline: the NotebookLM &ldquo;MCP Identity Boundaries &amp; OAuth&rdquo; cheat sheet, Approach A, refined with the real components and flows.</div>
+</header>
+
+<div class="wrap">
+<div class="band bandA">
+  <span class="tag"><i>1</i> APPROACH A: APIM Credential Manager (Broker)</span>
+  <span class="tag" style="background:#fff;margin-left:8px">Token issuer: Entra (provider) &middot; Token lifecycle owner: APIM</span>
+
+  <div class="controls">
+    <div class="seg" role="group" aria-label="Scenario">
+      <button data-s="runtime" aria-pressed="true">Runtime call</button>
+      <button data-s="setup" aria-pressed="false">One-time consent</button>
+      <button data-s="f401" aria-pressed="false">Fail: bad caller</button>
+      <button data-s="foid" aria-pressed="false">Fail: other identity</button>
+      <button data-s="f4" aria-pressed="false">Fail: not consented</button>
+      <button data-s="f403" aria-pressed="false">Fail: scope 403</button>
+      <button data-s="fredir" aria-pressed="false">Fail: redirect URI</button>
+    </div>
+    <div class="ctl">
+      <button id="play">Pause</button>
+      <button id="prev" aria-label="Previous step">&larr;</button>
+      <button id="next" aria-label="Next step">&rarr;</button>
+      <button id="restart">Restart</button>
+      <span id="stepno" style="color:var(--mut);margin-left:6px"></span>
+    </div>
+  </div>
+
+  <svg id="stage" viewBox="0 0 1300 640" role="img" aria-label="Animated architecture diagram of the APIM Credential Manager broker">
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#9db8d8"/></marker>
+    </defs>
+
+    <!-- edges -->
+    <path id="e_f_ent" class="edge" d="M150 250 C150 160 230 120 300 100"/>
+    <path id="e_f_a" class="edge" d="M260 340 L435 340"/>
+    <path id="e_u_ent" class="edge" d="M345 500 L345 135"/>
+    <path id="e_ent_cm" class="edge" d="M520 78 L590 78"/>
+    <path id="e_a_cm" class="edge" d="M640 300 L640 138"/>
+    <path id="e_a_g" class="edge" d="M860 340 L1010 340"/>
+
+    <!-- Entra -->
+    <g class="node" id="n_ent">
+      <rect class="box" x="300" y="30" width="220" height="100"/>
+      <text class="nt" x="410" y="62" text-anchor="middle">Microsoft Entra ID</text>
+      <text class="ns" x="410" y="82" text-anchor="middle">app apim-cm-poc-aad (v2 tokens)</text>
+      <text class="ns" x="410" y="100" text-anchor="middle">MSA + work accounts</text>
+      <text class="ns" x="410" y="118" text-anchor="middle">/common/oauth2/v2.0/*</text>
+    </g>
+
+    <!-- Credential manager -->
+    <g class="node" id="n_cm">
+      <rect class="box" x="590" y="30" width="270" height="108"/>
+      <text class="nt" x="725" y="58" text-anchor="middle">Credential Manager (vault)</text>
+      <text class="ns" x="725" y="78" text-anchor="middle">provider aadv2 &middot; connection c2</text>
+      <text class="ns" x="725" y="96" text-anchor="middle">access + refresh token, stored by APIM</text>
+      <text class="ns" x="725" y="114" text-anchor="middle">access policy: apimmsi (APIM identity)</text>
+      <g id="cmStatus"><circle cx="612" cy="124" r="6" fill="#c0c7d3"/><text class="ns" x="624" y="128" id="cmStatusT">not connected</text></g>
+    </g>
+    <g transform="translate(870,52)">
+      <rect class="life" x="-10" y="0" width="215" height="46" rx="12"/>
+      <text class="life-t" x="97" y="19" text-anchor="middle">Token lifecycle owner: APIM</text>
+      <text class="life-t" x="97" y="36" text-anchor="middle" style="font-weight:500">cache + refresh (refresh: proven)</text>
+    </g>
+
+    <!-- Foundry -->
+    <g class="node" id="n_f">
+      <rect class="box" x="40" y="250" width="220" height="190"/>
+      <text class="nt" x="150" y="278" text-anchor="middle">Foundry project proj1</text>
+      <text class="ns" x="150" y="296" text-anchor="middle">gpt-4o + whoami-agent (MCP tool)</text>
+      <g class="chip" id="c_conn"><rect x="56" y="318" width="188" height="48"/><text x="150" y="338" text-anchor="middle">connection apimmcp-mi</text><text x="150" y="355" text-anchor="middle" style="font-weight:400;font-size:11px">ProjectManagedIdentity, aud = app</text></g>
+      <g class="chip" id="c_agent"><rect x="56" y="376" width="188" height="48"/><text x="150" y="396" text-anchor="middle">Agent (LLM)</text><text x="150" y="413" text-anchor="middle" style="font-weight:400;font-size:11px">no secret in the tool config</text></g>
+    </g>
+
+    <!-- APIM -->
+    <g class="node" id="n_a">
+      <rect class="box" x="420" y="240" width="440" height="200"/>
+      <text class="nt" x="640" y="266" text-anchor="middle">API Management (Consumption) &middot; POST /mcp/</text>
+      <g class="chip" id="c_v"><rect x="435" y="300" width="125" height="80"/><text x="497" y="326" text-anchor="middle">&#9312; validate-jwt</text><text x="497" y="344" text-anchor="middle" style="font-weight:400;font-size:11px">aud + issuer</text><text x="497" y="360" text-anchor="middle" style="font-weight:400;font-size:11px">oid pin = project MI</text></g>
+      <g class="chip" id="c_g"><rect x="577" y="300" width="125" height="80"/><text x="639" y="326" text-anchor="middle">&#9313; get-auth-</text><text x="639" y="342" text-anchor="middle">context</text><text x="639" y="362" text-anchor="middle" style="font-weight:400;font-size:11px">as APIM identity</text></g>
+      <g class="chip" id="c_s"><rect x="719" y="300" width="125" height="80"/><text x="781" y="326" text-anchor="middle">&#9314; send-request</text><text x="781" y="344" text-anchor="middle" style="font-weight:400;font-size:11px">Bearer = Graph</text><text x="781" y="360" text-anchor="middle" style="font-weight:400;font-size:11px">token injected</text></g>
+      <text class="ns" x="640" y="412" text-anchor="middle">on-error: validate-jwt failure &rarr; 401</text>
+      <text class="ns" x="640" y="430" text-anchor="middle">tools/list &middot; initialize &middot; tools/call (whoami)</text>
+    </g>
+
+    <!-- Graph -->
+    <g class="node" id="n_g">
+      <rect class="box" x="1010" y="250" width="240" height="190"/>
+      <text class="nt" x="1130" y="282" text-anchor="middle">Backend account</text>
+      <text class="ns" x="1130" y="302" text-anchor="middle">Microsoft Graph</text>
+      <text class="ns" x="1130" y="322" text-anchor="middle">GET /v1.0/me</text>
+      <text class="ns" x="1130" y="352" text-anchor="middle">scope: User.Read</text>
+      <text class="ns" x="1130" y="370" text-anchor="middle">+ offline_access</text>
+      <text class="ns" x="1130" y="400" text-anchor="middle">/me/messages &rarr; 403</text>
+    </g>
+
+    <!-- User -->
+    <g class="node" id="n_u">
+      <rect class="box" x="240" y="500" width="210" height="100"/>
+      <text class="nt" x="345" y="532" text-anchor="middle">Human (browser)</text>
+      <text class="ns" x="345" y="552" text-anchor="middle">consents once per connection</text>
+      <text class="ns" x="345" y="570" text-anchor="middle">Safari / Dia &rarr; example.com</text>
+    </g>
+
+    <text class="ns" x="640" y="500" text-anchor="middle" style="font-weight:600">Static caller auth is not per-user isolation:</text>
+    <text class="ns" x="640" y="518" text-anchor="middle">one connection (c2) serves every caller that passes validate-jwt.</text>
+
+    <!-- packet layer -->
+    <g id="pktlayer"></g>
+  </svg>
+  <div class="legend"><span class="l1">request / response packet</span><span class="l2">rejected or failed</span><span class="l3">APIM owns token lifecycle</span></div>
+  <div class="caption" id="cap" aria-live="polite"></div>
+</div>
+
+<div class="band" style="background:var(--lav);border:1.5px solid var(--lav-line);padding:12px 16px">
+  <b>Foundry Toolbox / packaging layer</b> &mdash; bundles tools into one MCP endpoint and delegates identity and token handling to the runtime underneath. Here the tool is a plain MCP tool pointing at APIM; the identity work happens in the two components above, not in Foundry.
+</div>
+
+<div class="stripB">
+  <b>APPROACH B: Foundry Custom OAuth (passthrough)</b> &mdash; <span class="pill p-no">not built</span> token lifecycle owner: the user
+  <div class="row"><span class="st">User consent</span><span class="ar">&rarr;</span><span class="st">Provider user token</span><span class="ar">&rarr;</span><span class="st">APIM reverse proxy</span><span class="ar">&rarr;</span><span class="st">MCP backend as user</span></div>
+  <div style="margin-top:6px;color:#7a4a1f">This is the path to real per-user isolation. We could not exercise it (no second account, and A does not give it for free).</div>
+</div>
+
+<div class="grid">
+  <div class="card c-ok">
+    <h3>Proof ledger</h3>
+    <ul>
+      <li><span class="pill p-ok">proven</span>Managed-identity broker returns a working GitHub token (R1) and a Graph token (R5)</li>
+      <li><span class="pill p-ok">proven</span>Consent via generic <code>oauth2</code> provider with v2 URLs (built-in <code>aad</code> looped)</li>
+      <li><span class="pill p-ok">proven</span>Token cached: same hash across 16 min</li>
+      <li><span class="pill p-ok">proven</span>Foundry agent &rarr; APIM &rarr; Graph, keyless via project managed identity</li>
+      <li><span class="pill p-ok">proven</span>401 for no token, wrong audience, other identity (oid pin)</li>
+      <li><span class="pill p-ok">proven</span>403 insufficient scope; redirect_uri mismatch rejected; unconsented connection fails</li>
+      <li><span class="pill p-ok">proven</span>Refresh after expiry: new token, HTTP 200, no human involved</li>
+      <li><span class="pill p-ok">proven</span>Revoked connection fails closed (clean 424 in the hardened template); re-consent recovers</li>
+      <li><span class="pill p-no">not proven</span>Per-user isolation, per-user passthrough</li>
+    </ul>
+  </div>
+  <div class="card c-warn">
+    <h3>JWT gate does not force per-user tokens</h3>
+    <div>Validating the caller JWT (aud, issuer, oid) proves <em>who is calling APIM</em>. It still maps every allowed caller to the same stored connection <code>c2</code>. Per-user backend tokens need a per-caller <code>authorization-id</code> bound to a user identity.</div>
+    <div style="margin-top:8px"><b>Also:</b> the 401 error body leaks token-validation detail. Trim it for production.</div>
+  </div>
+  <div class="card" style="background:#e7f1fc;border-color:#9bbbe0">
+    <h3>Diagnostic status codes (observed)</h3>
+    <table>
+      <tr><th>Code</th><th>Seen in this PoC</th><th>Action</th></tr>
+      <tr><td class="s s401">401</td><td>No token, wrong audience, other identity</td><td>Fix caller token or the oid pin</td></tr>
+      <tr><td class="s s403">403</td><td>Graph <code>/me/messages</code> with User.Read only</td><td>Add scope, re-consent</td></tr>
+      <tr><td class="s s424">424</td><td>Not exercised (needs expired + revoked refresh)</td><td>Re-authorize connection</td></tr>
+    </table>
+  </div>
+</div>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const svg = $('stage'), layer = $('pktlayer'), cap = $('cap');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const NS = 'http://www.w3.org/2000/svg';
+
+  // step: edge, dir (1 fwd, -1 rev), label, nodes/chips to mark, state (on/bad/good), text, cm status
+  const S = {
+    runtime: [
+      {t:'Agent decides to call a tool', d:'The user asked "who is signed in". The LLM picks the <code>whoami</code> MCP tool. The tool config holds only a connection name, no secret.', on:['n_f','c_agent']},
+      {e:'e_f_ent',dir:1,l:'MI token request', d:'Foundry uses the <b>project managed identity</b> via connection <code>apimmcp-mi</code> and asks Entra for a token with audience = the app id.', on:['n_f','c_conn','n_ent']},
+      {e:'e_f_ent',dir:-1,l:'JWT (aud=app)', d:'Entra returns a short-lived v2 JWT. Its <code>oid</code> is the Foundry project managed identity. Nothing is stored in the connection, so nothing expires on us.', on:['n_ent','n_f']},
+      {e:'e_f_a',dir:1,l:'POST /mcp/ tools/call', d:'Foundry calls APIM with <code>Authorization: Bearer &lt;JWT&gt;</code> and a JSON-RPC <code>tools/call</code> for <code>whoami</code>.', on:['n_f','n_a']},
+      {chip:'c_v',state:'good',d:'<b>&#9312; validate-jwt</b>: audience, issuer and the <code>oid</code> pin all match the Foundry project identity. Any other caller gets 401 here.', on:['n_a']},
+      {e:'e_a_cm',dir:1,l:'get-authorization-context', d:'<b>&#9313;</b> APIM asks Credential Manager for the token of <code>aadv2/c2</code>, using its own system identity (access policy <code>apimmsi</code>).', on:['n_a','c_g','n_cm']},
+      {e:'e_a_cm',dir:-1,l:'Graph access token', d:'The vault returns the stored token. If it were expired, APIM would refresh it with the refresh token first (not yet observed, see ledger).', on:['n_cm','c_g'], cm:'connected'},
+      {e:'e_a_g',dir:1,l:'GET /v1.0/me', d:'<b>&#9314;</b> APIM injects <code>Authorization: Bearer &lt;Graph token&gt;</code> and calls Graph. The agent never sees this token.', on:['c_s','n_g']},
+      {e:'e_a_g',dir:-1,l:'displayName', d:'Graph answers 200 with the user profile. APIM extracts <code>displayName</code>.', on:['n_g','c_s']},
+      {e:'e_f_a',dir:-1,l:'JSON-RPC result', d:'APIM returns a JSON-RPC result to Foundry.', on:['n_a','n_f']},
+      {d:'<b>Agent answers:</b> "The signed-in user is Jane Doe." The full chain ran with no stored secret on the Foundry side.', on:['n_f','c_agent'],state:'good'}
+    ],
+    setup: [
+      {d:'A one-time step per connection. The connection <code>c2</code> starts as <b>Error: not authenticated</b>.', on:['n_cm']},
+      {e:'e_u_ent',dir:1,l:'open login link', d:'APIM <code>getLoginLinks</code> returns a URL. The human opens it. It goes to Entra <code>/common/oauth2/v2.0/authorize</code> with the app id and scopes.', on:['n_u','n_ent']},
+      {d:'Entra shows the consent screen for <code>User.Read</code> + <code>offline_access</code>. The user signs in as a personal Microsoft account and accepts.', on:['n_ent','n_u']},
+      {e:'e_ent_cm',dir:1,l:'auth code', d:'Entra redirects to <code>authorization-manager.consent.azure-apim.net/redirect/apim/&lt;apim&gt;</code>. That exact URI must be registered on the app.', on:['n_ent','n_cm']},
+      {d:'Credential Manager exchanges the code for an access token and a refresh token and stores them. Status flips to <b>Connected</b>. The browser lands on example.com.', on:['n_cm'], cm:'connected', state:'good'}
+    ],
+    f401: [
+      {e:'e_f_a',dir:1,l:'no / wrong-aud token', d:'A caller sends no token, or a token for another audience (e.g. Graph).', on:['n_a']},
+      {chip:'c_v',state:'bad',d:'<b>validate-jwt fails.</b> The request never reaches the vault or Graph.', on:['n_a']},
+      {e:'e_f_a',dir:-1,l:'401',bad:1, d:'<code>on-error</code> maps the validate-jwt failure to <b>401</b>. (The body leaks IDX detail: trim for production.)', on:['n_f']}
+    ],
+    foid: [
+      {e:'e_f_a',dir:1,l:'valid JWT, other oid', d:'Another identity gets a valid token for the right audience (we minted one with a client secret).', on:['n_a']},
+      {chip:'c_v',state:'bad',d:'Audience and issuer pass, but the <code>oid</code> is not the pinned Foundry project identity. Rejected.', on:['n_a']},
+      {e:'e_f_a',dir:-1,l:'401',bad:1,d:'<b>401</b>. The Foundry managed-identity path keeps working. This is the caller allowlist, not per-user isolation.', on:['n_f']}
+    ],
+    f4: [
+      {e:'e_f_a',dir:1,l:'valid call', d:'A valid caller reaches APIM, but the connection was never consented (like <code>github/conn2</code>).', on:['n_a','c_v']},
+      {e:'e_a_cm',dir:1,l:'get-authorization-context', d:'APIM asks the vault for the token.', on:['c_g','n_cm']},
+      {chip:'c_g',state:'bad',d:'There is no token to return, so the context variable is left unset and the call fails. Add a guard in the policy for a clean error.', on:['n_cm'], cm:'error'},
+      {e:'e_f_a',dir:-1,l:'error',bad:1,d:'The caller gets an error and no Graph call is made. Fix: re-consent via a new login link.', on:['n_f']}
+    ],
+    f403: [
+      {e:'e_a_cm',dir:1,l:'get-authorization-context', d:'The connection only holds <code>User.Read</code> + <code>offline_access</code>.', on:['c_g','n_cm']},
+      {e:'e_a_g',dir:1,l:'GET /me/messages', d:'A route asks Graph for mail, which needs a scope the user never granted.', on:['c_s','n_g']},
+      {chip:'c_s',state:'bad',d:'Graph answers <b>403</b> insufficient scope.', on:['n_g'],state2:'bad'},
+      {d:'Fix: step-up consent. Add the scope to the provider and re-authorize the connection. The token does not silently gain scopes.', on:['n_cm']}
+    ],
+    fredir: [
+      {e:'e_u_ent',dir:1,l:'redirect_uri=evil.example.com', d:'A login link is tampered to use a redirect URI that is not registered on the app.', on:['n_u','n_ent']},
+      {chip:null,d:'Entra rejects it: <b>invalid_request: The provided value for the input parameter \'redirect_uri\' is not valid</b>. No code is issued, so nothing can be stolen via a rogue redirect.', on:['n_ent'],state:'bad'}
+    ]
+  };
+
+  let scen='runtime', i=-1, playing=!reduce, timer=null, raf=null;
+  const dur=1500, hold=2300;
+
+  function clearMarks(){
+    document.querySelectorAll('.node,.chip').forEach(n=>n.classList.remove('on','bad','good'));
+    document.querySelectorAll('.edge').forEach(n=>n.classList.remove('live','red'));
+    layer.innerHTML='';
+  }
+  function cmStatus(s){
+    const c=$('cmStatus').firstElementChild, t=$('cmStatusT');
+    const m={connected:['#2e9e5b','Connected'],error:['#d64545','Error: not authenticated'],none:['#c0c7d3','not connected']}[s||'none'];
+    c.setAttribute('fill',m[0]); t.textContent=m[1];
+  }
+  function animate(step){
+    if(!step.e || reduce) return;
+    const p=$(step.e), len=p.getTotalLength();
+    const g=document.createElementNS(NS,'g'); g.setAttribute('class','pkt'+(step.bad?' red':''));
+    const w=step.l.length*7+16;
+    g.innerHTML='<rect x="12" y="-30" width="'+w+'" height="22"/><text x="20" y="-14">'+step.l.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</text><circle r="9"/>';
+    layer.appendChild(g);
+    p.classList.add(step.bad?'red':'live');
+    const t0=performance.now();
+    cancelAnimationFrame(raf);
+    const tick=now=>{
+      let k=Math.min(1,(now-t0)/dur); k=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
+      const pt=p.getPointAtLength((step.dir>0?k:1-k)*len);
+      const flip=pt.x+w+30>1300;
+      g.setAttribute('transform','translate('+pt.x+','+pt.y+')');
+      g.firstChild.setAttribute('x',flip?-w-12:12); g.children[1].setAttribute('x',flip?-w-4:20);
+      if(k<1) raf=requestAnimationFrame(tick);
+    };
+    raf=requestAnimationFrame(tick);
+  }
+  function show(n){
+    const list=S[scen]; i=Math.max(0,Math.min(list.length-1,n));
+    const st=list[i]; clearMarks();
+    // cumulative connection status
+    let status='none';
+    if(scen==='runtime'||scen==='f403') status='connected';
+    list.slice(0,i+1).forEach(s=>{ if(s.cm) status=s.cm; });
+    if(scen==='f4') status = i>=2 ? 'error' : 'error';
+    cmStatus(status);
+    (st.on||[]).forEach(id=>$(id).classList.add('on'));
+    if(st.chip) $(st.chip).classList.add(st.state||'on');
+    else if(st.state) (st.on||[]).forEach(id=>{$(id).classList.remove('on');$(id).classList.add(st.state)});
+    animate(st);
+    cap.innerHTML='<b>'+(i+1)+' / '+list.length+'</b>'+st.d;
+    $('stepno').textContent='';
+  }
+  function schedule(){
+    clearTimeout(timer);
+    if(!playing) return;
+    timer=setTimeout(()=>{ show(i+1>=S[scen].length?0:i+1); schedule(); }, hold);
+  }
+  function setScen(s){
+    scen=s; document.querySelectorAll('.seg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.s===s));
+    show(0); schedule();
+  }
+  document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>setScen(b.dataset.s));
+  $('play').onclick=()=>{playing=!playing;$('play').textContent=playing?'Pause':'Play';schedule();};
+  $('next').onclick=()=>{show(i+1>=S[scen].length?0:i+1);schedule();};
+  $('prev').onclick=()=>{show(i<=0?S[scen].length-1:i-1);schedule();};
+  $('restart').onclick=()=>{show(0);schedule();};
+  addEventListener('keydown',e=>{if(e.key==='ArrowRight')$('next').click();if(e.key==='ArrowLeft')$('prev').click();if(e.key===' '&&e.target===document.body){e.preventDefault();$('play').click();}});
+  $('play').textContent=playing?'Pause':'Play';
+  show(0); schedule();
+})();
+</script>
+</body>
+</html>

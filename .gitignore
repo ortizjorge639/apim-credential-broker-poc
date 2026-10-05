@@ -1,0 +1,6 @@
+*.env
+secrets/
+*.jwt
+.DS_Store
+/tmp/
+agent-*.json
