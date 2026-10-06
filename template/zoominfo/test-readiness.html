@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ZoomInfo test readiness | APIM + Foundry</title>
+  <title>ZoomInfo test readiness | Foundry + APIM</title>
   <script>
     (() => {
       const param = new URLSearchParams(window.location.search).get("clawpilotTheme");
@@ -107,6 +107,35 @@
     .shared {
       display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
     }
+    .architecture-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .flow-card {
+      padding: 20px; border: 1px solid var(--cp-border); border-radius: 16px;
+      background: var(--cp-surface); box-shadow: var(--cp-card-shadow);
+    }
+    .flow-card h3 { margin: 0 0 8px; font-size: 1.1rem; }
+    .flow-card p { margin: 0 0 14px; color: var(--cp-text-muted); font-size: .88rem; }
+    .flow-line { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+    .flow-node {
+      padding: 7px 10px; border: 1px solid var(--cp-border); border-radius: .5rem;
+      background: var(--cp-bg-elevated); font-size: .8rem; font-weight: 700;
+    }
+    .flow-arrow { color: var(--cp-accent); font-weight: 900; }
+    .lens-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .lens-card {
+      padding: 18px; border: 1px solid var(--cp-border); border-radius: 14px;
+      background: var(--cp-surface);
+    }
+    .lens-card h3 { margin: 0 0 5px; font-size: 1rem; }
+    .lens-card p { margin: 0; color: var(--cp-text-muted); font-size: .88rem; }
+    .lens-state {
+      display: inline-block; margin-top: 12px; padding: 5px 9px; border-radius: 999px;
+      background: var(--cp-accent-soft); color: var(--cp-accent); font-size: .73rem; font-weight: 800;
+    }
+    .impact-wrap { overflow-x: auto; border: 1px solid var(--cp-border); border-radius: 14px; background: var(--cp-surface); }
+    .impact-table { width: 100%; min-width: 690px; border-collapse: collapse; font-size: .88rem; }
+    .impact-table th, .impact-table td { padding: 13px 15px; border-bottom: 1px solid var(--cp-border); text-align: left; vertical-align: top; }
+    .impact-table th { background: var(--cp-bg-elevated); font-size: .78rem; letter-spacing: .04em; }
+    .impact-table tr:last-child td { border-bottom: 0; }
     .shared-item, .lane, .matrix-card, .foot-card {
       border: 1px solid var(--cp-border); border-radius: 16px; background: var(--cp-surface);
       box-shadow: var(--cp-card-shadow);
@@ -158,7 +187,7 @@
     .lane-footer { border-top: 1px solid var(--cp-border); padding-top: 14px; }
     .lane-footer strong { display: block; font-size: .9rem; }
     .lane-footer span { display: block; margin-top: 3px; color: var(--cp-text-muted); font-size: .84rem; }
-    .lane[data-mode="apim"] .lane-footer { border-left: 3px solid var(--cp-warning); padding-left: 12px; }
+    .lane[data-mode="toolbox"] .lane-footer { border-left: 3px solid var(--cp-warning); padding-left: 12px; }
     .lane[data-mode="foundry"] .lane-footer { border-left: 3px solid var(--cp-success); padding-left: 12px; }
     .apim-note {
       margin: 15px 0 0; padding: 12px 14px; border-radius: .625rem;
@@ -193,6 +222,7 @@
     .mode-summary { min-height: 44px; margin-top: 12px; color: var(--cp-text-muted); font-size: .87rem; }
     @media (max-width: 820px) {
       .shared { grid-template-columns: 1fr 1fr; }
+      .architecture-grid, .lens-grid { grid-template-columns: 1fr; }
       .lanes { grid-template-columns: 1fr; }
       .file-map { grid-template-columns: 1fr 1fr; }
       .section-head { align-items: start; flex-direction: column; }
@@ -219,18 +249,50 @@
     </div>
 
     <header class="hero">
-      <div class="eyebrow">Two routes · one real outcome</div>
+      <div class="eyebrow">One baseline · one proposed follow-on</div>
       <h1>What do we need to test?</h1>
-      <p><strong>First get the real ZoomInfo connection details and a reachable HTTPS MCP endpoint.</strong> Then prove a real, read-only Lookup. Foundry passthrough and APIM Credential Manager are separate auth tests—not a single shared blocker.</p>
+      <p><strong>First test Foundry directly to ZoomInfo.</strong> Prove the expected Okta sign-in, delegated user identity, and one read-only Lookup. Only then consider a separately designed Toolbox route through APIM to measure its governance and telemetry.</p>
     </header>
 
     <aside class="local-ribbon" aria-label="Local mock status">
       <div class="check-icon" aria-hidden="true">✓</div>
       <div>
         <strong>Local protocol mock: ready and tested</strong>
-        <span>Local OAuth and MCP protocols plus Foundry/APIM-shaped token paths now run end to end with fictional data. This builds architecture confidence; it is still loopback HTTP, not hosted Foundry, real APIM, or ZoomInfo.</span>
+        <span>Local OAuth and MCP protocols plus Foundry/APIM-shaped token paths run with fictional data. This builds protocol confidence; it is loopback HTTP, not hosted Foundry, real APIM, or ZoomInfo.</span>
       </div>
     </aside>
+
+    <section aria-labelledby="architecture-title">
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">Architecture comparison</div>
+          <h2 id="architecture-title">Separate the baseline from the gateway test</h2>
+        </div>
+        <p>The first route tests delegated ZoomInfo access. The later route tests APIM governance and telemetry. They answer different questions.</p>
+      </div>
+      <div class="architecture-grid">
+        <article class="flow-card">
+          <h3>Baseline · direct Foundry connection</h3>
+          <p>Current test target. APIM is not in this request path.</p>
+          <div class="flow-line" aria-label="Test user flows through Foundry directly to ZoomInfo">
+            <span class="flow-node">Test user</span><span class="flow-arrow" aria-hidden="true">→</span>
+            <span class="flow-node">Foundry OAuth passthrough</span><span class="flow-arrow" aria-hidden="true">→</span>
+            <span class="flow-node">ZoomInfo / Okta</span><span class="flow-arrow" aria-hidden="true">→</span>
+            <span class="flow-node">ZoomInfo MCP · Lookup</span>
+          </div>
+        </article>
+        <article class="flow-card">
+          <h3>Proposed · Toolbox through APIM</h3>
+          <p>Follow-on only. Token owner, hosting, and identity propagation still need design.</p>
+          <div class="flow-line" aria-label="Foundry routes through APIM and Toolbox to ZoomInfo">
+            <span class="flow-node">Foundry</span><span class="flow-arrow" aria-hidden="true">→</span>
+            <span class="flow-node">APIM</span><span class="flow-arrow" aria-hidden="true">→</span>
+            <span class="flow-node">Toolbox</span><span class="flow-arrow" aria-hidden="true">→</span>
+            <span class="flow-node">ZoomInfo</span>
+          </div>
+        </article>
+      </div>
+    </section>
 
     <section aria-labelledby="shared-title">
       <div class="section-head">
@@ -254,7 +316,7 @@
         <article class="shared-item">
           <span class="number">03</span>
           <h3>Scope + safe test user</h3>
-          <p>Customer-approved least-privilege scopes, test-user consent and Lookup entitlement; no production-sensitive query.</p>
+          <p>ZoomInfo must confirm what the app scopes grant; approve a test user and safe Lookup query. A Lookup-only test does not mean a Lookup-only token.</p>
         </article>
         <article class="shared-item">
           <span class="number">04</span>
@@ -263,65 +325,137 @@
         </article>
       </div>
       <p class="small-note">Client secrets stay in an approved secure connection/secret store—not in source, config JSON, logs, or this page.</p>
+      <p class="small-note">The screenshot requests `zi_api zi_mcp api:data:mcp offline_access`. ZoomInfo's public API scope catalog does not list the first three or define `offline_access`; its PKCE docs say code flow returns refresh tokens. Ask ZoomInfo which scopes apply and whether Foundry requires `offline_access`. Also confirm the screenshot URLs under `okta-login.zoominfo.com`: the public guide shows an authorize URL under `api.zoominfo.com`. One read-only Lookup test does not limit the token to Lookup.</p>
+    </section>
+
+    <section aria-labelledby="lenses-title">
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">Two evidence lenses</div>
+          <h2 id="lenses-title">Identity proof is not telemetry proof</h2>
+        </div>
+        <p>Do not use success in one layer as evidence for another layer.</p>
+      </div>
+      <div class="lens-grid">
+        <article class="lens-card">
+          <h3>Delegated identity</h3>
+          <p>For the baseline, verify ZoomInfo receives the signed-in test user's identity and that the read-only Lookup succeeds. Foundry sign-in alone is not backend identity proof.</p>
+          <span class="lens-state">Required in both routes</span>
+        </article>
+        <article class="lens-card">
+          <h3>Gateway governance and observability</h3>
+          <p>Only the Toolbox/APIM follow-on can produce APIM telemetry for this route. Default MCP telemetry includes request/tool metadata; arguments and results require payload logging.</p>
+          <span class="lens-state">Not tested by the baseline</span>
+        </article>
+      </div>
     </section>
 
     <section aria-labelledby="routes-title">
       <div class="section-head">
         <div>
           <div class="eyebrow">Choose a test lane</div>
-          <h2 id="routes-title">Same endpoint. Different OAuth owner.</h2>
+          <h2 id="routes-title">Direct baseline, then an optional gateway test</h2>
         </div>
         <div class="switcher" role="group" aria-label="Highlight a test route">
-          <button type="button" data-select="foundry" aria-pressed="true">Foundry passthrough</button>
-          <button type="button" data-select="apim" aria-pressed="false">APIM Credential Manager</button>
+          <button type="button" data-select="foundry" aria-pressed="true">Foundry direct baseline</button>
+          <button type="button" data-select="toolbox" aria-pressed="false">Toolbox + APIM follow-on</button>
         </div>
       </div>
-      <p id="route-summary" class="mode-summary" aria-live="polite">Start with this lane after common inputs are ready. Its main question is whether Foundry sends the invoking user's delegated ZoomInfo identity through APIM to Lookup.</p>
+      <p id="route-summary" class="mode-summary" aria-live="polite">Start with this route after customer inputs are ready. Foundry connects directly to ZoomInfo; APIM is not on this baseline path.</p>
       <div class="lanes">
         <article class="lane active" data-mode="foundry">
           <div class="lane-top">
             <div>
               <div class="eyebrow">Baseline / per-user identity</div>
-              <h3>Foundry OAuth passthrough</h3>
+              <h3>Foundry directly to ZoomInfo</h3>
             </div>
             <span class="status ready">Can test first</span>
           </div>
-          <p class="lane-intro">Foundry owns the delegated OAuth connection; APIM remains the governance/proxy layer.</p>
+          <p class="lane-intro">Foundry owns the per-user delegated OAuth connection. This baseline does not pass through APIM.</p>
           <ol class="steps">
             <li><span class="step-dot">1</span><div><strong>Configure Foundry OAuth connection</strong><p>Use the customer app details, approved scopes, and Foundry's matching registered callback. Put the secret only in the secure connection setup.</p></div></li>
-            <li><span class="step-dot">2</span><div><strong>Route through the APIM HTTPS endpoint</strong><p>Foundry must reach the registered HTTPS MCP address. The local mock at 127.0.0.1 is not reachable from hosted Foundry.</p></div></li>
-            <li><span class="step-dot">3</span><div><strong>Call only Lookup as test user</strong><p>Confirm delegated identity matches the signed-in test user; capture status, JSON-RPC result, and MCP <code>isError</code>.</p></div></li>
+            <li><span class="step-dot">2</span><div><strong>Connect to ZoomInfo MCP directly</strong><p>Use the provider-approved HTTPS endpoint. The local mock at 127.0.0.1 is not reachable from hosted Foundry.</p></div></li>
+            <li><span class="step-dot">3</span><div><strong>Call only Lookup as test user</strong><p>Confirm ZoomInfo receives the signed-in test user's identity; capture status, JSON-RPC result, and MCP <code>isError</code>.</p></div></li>
           </ol>
           <div class="lane-footer">
             <strong>PASS when</strong>
-            <span>That user's delegated authorization is proven and a successful, documented read-only Lookup returns through APIM.</span>
+            <span>That user's delegated identity is verified at ZoomInfo and the direct read-only Lookup succeeds. No APIM claim is made.</span>
           </div>
         </article>
 
-        <article class="lane" data-mode="apim">
+        <article class="lane" data-mode="toolbox">
           <div class="lane-top">
             <div>
-              <div class="eyebrow">Candidate / brokered token</div>
-              <h3>APIM Credential Manager</h3>
+              <div class="eyebrow">Proposed follow-on / telemetry</div>
+              <h3>Toolbox through APIM</h3>
             </div>
-            <span class="status">Separate follow-on</span>
+            <span class="status">Design first</span>
           </div>
-          <p class="lane-intro">APIM owns the OAuth connection and injects its backend token; test it separately from Foundry passthrough.</p>
+          <p class="lane-intro">After the direct baseline, define the Toolbox endpoint, authentication, and token/identity owner before routing it through APIM.</p>
           <ol class="steps">
-            <li><span class="step-dot">1</span><div><strong>Create a separate PKCE provider/connection</strong><p>Use the APIM Credential Manager portal's generic OAuth 2.0 with PKCE option and its APIM callback—not the Foundry callback.</p></div></li>
-            <li><span class="step-dot">2</span><div><strong>Prove mandatory S256 at runtime</strong><p>Observe <code>code_challenge_method=S256</code>; verify no-challenge authorization is rejected. Do not infer config from a guessed IaC property.</p></div></li>
-            <li><span class="step-dot">3</span><div><strong>Broker token and call Lookup</strong><p>Complete OAuth code exchange, then prove APIM's read-only Lookup succeeds and returns a valid MCP result.</p></div></li>
+            <li><span class="step-dot">1</span><div><strong>Define the actual route</strong><p>Record where Toolbox runs, the MCP URL, caller authentication, ZoomInfo auth method, and identity/token owner.</p></div></li>
+            <li><span class="step-dot">2</span><div><strong>Expose Toolbox MCP through APIM</strong><p>Allow only approved tools and methods; review routing, access controls, streaming, and secret-safe telemetry.</p></div></li>
+            <li><span class="step-dot">3</span><div><strong>Repeat Lookup and inspect evidence</strong><p>Verify the identity at ZoomInfo and observe APIM's request telemetry. Compare with the direct baseline.</p></div></li>
           </ol>
           <div class="lane-footer">
             <strong>PASS when</strong>
-            <span>S256, code exchange, and successful read-only Lookup are evidenced—not merely a connected status or token.</span>
+            <span>Toolbox identity propagation, a successful read-only Lookup, and the APIM telemetry are observed—not assumed.</span>
           </div>
-          <p class="apim-note"><strong>Important distinction:</strong> Customer ZoomInfo URLs/scopes are needed for both lanes. PKCE's portal-vs-IaC configuration question is separate: the portal option is documented, but the checked repo ARM/Bicep schema does not document a selector. This blocks guessing an automated field, not the Foundry test.</p>
+          <p class="apim-note"><strong>Telemetry boundary:</strong> APIM documents default MCP dimensions such as tool, client, duration, and success. Arguments/results are not included by default. The local repo's optional Credential Manager PKCE experiment is separate from this Toolbox route.</p>
         </article>
       </div>
       <div class="decision-bar">
         <div class="decision-tag">Decision rule</div>
-        <p><strong>Run the local end-to-end simulations now</strong> to check OAuth→gateway→MCP wiring and token boundaries without customer inputs. For hosted Foundry, use customer inputs + reachable registered HTTPS MCP. Run APIM Credential Manager as a separate real-product lane; local S256 proves only the mock issuer/client flow.</p>
+        <p><strong>Run the local simulations for protocol confidence.</strong> For the real baseline, use customer inputs and Foundry's direct HTTPS connection to ZoomInfo. Test Toolbox/APIM only after its topology is defined; neither local simulation proves hosted identity or APIM telemetry.</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="impact-title">
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">Impact by layer</div>
+          <h2 id="impact-title">What changes in the follow-on?</h2>
+        </div>
+        <p>The baseline isolates user sign-in and Lookup. The follow-on adds a gateway path and its own trust and telemetry checks.</p>
+      </div>
+      <div class="impact-wrap">
+        <table class="impact-table">
+          <thead><tr><th scope="col">Layer</th><th scope="col">Direct baseline</th><th scope="col">Toolbox + APIM follow-on</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">OAuth / user identity</th><td>Foundry connects to ZoomInfo. Verify the invoking user's delegated identity at ZoomInfo.</td><td>Document token ownership and verify the same identity at ZoomInfo across Toolbox.</td></tr>
+            <tr><th scope="row">MCP tool</th><td>Call one approved, read-only Lookup.</td><td>Expose and call only approved Lookup methods through APIM.</td></tr>
+            <tr><th scope="row">APIM governance</th><td>Not on the request path.</td><td>Review caller auth, routing, backend auth, allowlist, and streaming behavior.</td></tr>
+            <tr><th scope="row">Telemetry</th><td>No APIM telemetry for this call.</td><td>Observe default MCP dimensions and latency. Arguments/results are excluded unless payload logging is enabled.</td></tr>
+            <tr><th scope="row">OAuth permission scope</th><td>ZoomInfo must confirm the app scopes; one Lookup call does not constrain the token to Lookup.</td><td>Same ZoomInfo permission review; the gateway tool allowlist is a separate control.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-labelledby="findings-title">
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">High-ground findings</div>
+          <h2 id="findings-title">Three things to keep separate</h2>
+        </div>
+      </div>
+      <div class="foot-grid">
+        <article class="foot-card">
+          <h3>Start with the direct route</h3>
+          <p>It isolates whether Foundry can complete the user's ZoomInfo/Okta sign-in and call Lookup. It says nothing about APIM.</p>
+        </article>
+        <article class="foot-card">
+          <h3>Add APIM to measure APIM</h3>
+          <p>Telemetry and gateway controls can only be assessed after the Toolbox/APIM route is defined and exercised. Do not claim these benefits for the baseline.</p>
+        </article>
+        <article class="foot-card">
+          <h3>One tool call is not least privilege</h3>
+          <p>ZoomInfo app scopes define token permissions. The test's Lookup-only plan and APIM tool allowlist are separate controls.</p>
+        </article>
+        <article class="foot-card">
+          <h3>Product docs are not an end-to-end proof</h3>
+          <p>Official guidance supports individual components. The exact ZoomInfo + Okta + Foundry + Toolbox + APIM integration still needs customer runtime evidence.</p>
+        </article>
       </div>
     </section>
 
@@ -344,20 +478,21 @@
           </ul>
         </article>
         <article class="foot-card">
-          <h3>APIM Credential Manager evidence</h3>
-          <p>Complete only after the broker's exact PKCE behavior and end-to-end MCP call are proven.</p>
+          <h3>Toolbox/APIM follow-on evidence</h3>
+          <p>Complete only after the topology, identity owner, and end-to-end call are proven.</p>
           <ul>
-            <li>APIM authorization uses S256; missing challenge is rejected</li>
-            <li>Authorization code exchanges with verifier</li>
+            <li>Toolbox hosting and token/identity ownership are documented</li>
+            <li>ZoomInfo confirms the identity received by the backend</li>
             <li>Successful read-only Lookup through APIM</li>
-            <li>Redacted evidence only; no token/body copied into repo</li>
+            <li>Observed telemetry; arguments/results excluded unless separately approved</li>
           </ul>
         </article>
       </div>
       <div class="closing">
-        <p>The immediate real-test dependency is customer ZoomInfo app + MCP information—not “APIM PKCE support.”</p>
-        <span>That customer information unlocks Foundry passthrough. APIM Credential Manager PKCE is an independent second experiment; its portal option is documented, while IaC selection and S256 enforcement still need specific proof.</span>
+        <p>The direct Foundry → ZoomInfo test proves the per-user baseline, not APIM governance.</p>
+        <span>Public product documentation supports individual components, but does not prove this complete customer topology. Confirm the OAuth app scopes and URLs with ZoomInfo. The proposed Toolbox/APIM follow-on needs its own design and runtime evidence.</span>
       </div>
+      <p class="small-note">First-party references: <a href="https://docs.gtm.ai/docs/standard-app">ZoomInfo Standard Apps</a>, <a href="https://docs.gtm.ai/docs/authorization-code-flow-pkce">ZoomInfo PKCE</a>, <a href="https://docs.gtm.ai/docs/zoominfo-oauth-scopes">ZoomInfo scopes</a>, <a href="https://docs.gtm.ai/docs/refresh-tokens-flow">ZoomInfo refresh tokens</a>, <a href="https://learn.microsoft.com/azure/foundry/agents/how-to/mcp-authentication">Foundry MCP OAuth</a>, <a href="https://learn.microsoft.com/azure/api-management/monitor-mcp-servers">APIM MCP telemetry</a>. These document product capabilities, not this integrated route.</p>
     </section>
 
     <section aria-labelledby="files-title">
@@ -386,8 +521,8 @@
   </main>
   <script>
     const routeCopy = {
-      foundry: "Start with this lane after common inputs are ready. Its main question is whether Foundry sends the invoking user's delegated ZoomInfo identity through APIM to Lookup.",
-      apim: "This lane is independent of the Foundry test. The portal documents Generic OAuth 2.0 with PKCE; the local IaC schema does not document its selector, so use the portal for a separately approved experiment and verify S256 from runtime evidence."
+      foundry: "Start with this route after customer inputs are ready. Foundry connects directly to ZoomInfo; APIM is not on this baseline path.",
+      toolbox: "Run this only after the direct baseline and after Toolbox hosting, authentication, and identity/token ownership are defined. Measure APIM telemetry on this route."
     };
     const buttons = [...document.querySelectorAll("[data-select]")];
     const lanes = [...document.querySelectorAll(".lane")];
