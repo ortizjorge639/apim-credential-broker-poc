@@ -1,0 +1,11 @@
+{
+  "authorization_succeeded": false,
+  "token_exchange_succeeded": false,
+  "pkce_s256_verified": false,
+  "lookup_read_only_verified": false,
+  "lookup_http_status": null,
+  "lookup_jsonrpc_error": false,
+  "lookup_mcp_is_error": false,
+  "per_user_delegation_verified": false,
+  "evidence_refs": []
+}

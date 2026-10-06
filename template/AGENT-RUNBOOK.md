@@ -18,3 +18,7 @@ Roles: AGENT = coding agent with az/curl/jq. HUMAN = proxy who unblocks portals/
 Rules for the agent: report blunt pass/fail with evidence; fix-forward on deploy errors (known: concurrent Foundry writes -> dependsOn; deploy.sh is idempotent); do not delete or spend beyond the budget without asking; use tenant-domain portal links (`#@<tenant>.onmicrosoft.com`), not GUID links.
 
 Verified: a fresh deployment of this template passed steps 1-4 and the 424 fail-closed test (suffix t2). Step 4 can be run with `./verify.sh <suffix>`. Known unverified: per-user isolation.
+
+## ZoomInfo MCP validation (customer-run, not part of this deployment)
+
+Start with [`zoominfo/portal-first-guide.md`](zoominfo/portal-first-guide.md) for the portal-by-portal customer walkthrough. Use [`zoominfo/customer-replication-runbook.md`](zoominfo/customer-replication-runbook.md) for the detailed procedure, prerequisites, safety approvals, validation gates, and cleanup. [`zoominfo/README.md`](zoominfo/README.md) documents the local simulations, offline evidence gate, and status of the two parameterized APIM policy drafts. The existing `main.bicep` and `deploy.sh` are Graph-specific and must not be treated as a ZoomInfo deployment. No ZoomInfo customer credentials or endpoints are stored here, and these guides do not deploy or call ZoomInfo.

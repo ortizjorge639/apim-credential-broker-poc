@@ -1,0 +1,13 @@
+{
+  "app_type": "Standard",
+  "authorization_mode": "foundry_oauth_passthrough",
+  "client_id": "",
+  "authorization_url": "",
+  "token_url": "",
+  "refresh_url": "",
+  "redirect_url": "",
+  "scopes": [],
+  "apim_mcp_endpoint": "",
+  "lookup_tool": "Lookup",
+  "lookup_arguments": {}
+}

@@ -1,0 +1,43 @@
+<!--
+  DRAFT ONLY. Not ready to deploy.
+  Assumes the Authorization header contains a signed ZoomInfo JWT and the
+  provider publishes OpenID metadata. Replace every {{...}} value using
+  customer-approved ZoomInfo documentation. If tokens are opaque or these
+  assumptions do not match the real service, do not use this policy.
+
+  APIM forwards request headers to MCP tool invocations by default. This
+  policy validates the delegated token and leaves it unchanged for the
+  ZoomInfo backend. Verify that behavior in the customer test environment.
+-->
+<policies>
+  <inbound>
+    <base />
+    <validate-jwt
+        header-name="Authorization"
+        require-scheme="Bearer"
+        failed-validation-httpcode="401"
+        failed-validation-error-message="Unauthorized">
+      <openid-config url="{{ZOOMINFO_OIDC_METADATA_URL}}" />
+      <audiences>
+        <audience>{{ZOOMINFO_TOKEN_AUDIENCE}}</audience>
+      </audiences>
+      <issuers>
+        <issuer>{{ZOOMINFO_TOKEN_ISSUER}}</issuer>
+      </issuers>
+      <!--
+        Add required-claims only after the ZoomInfo owner confirms the
+        app/client and delegated-user claim names and formats. Do not guess
+        claim names or values.
+      -->
+    </validate-jwt>
+  </inbound>
+  <backend>
+    <base />
+  </backend>
+  <outbound>
+    <base />
+  </outbound>
+  <on-error>
+    <base />
+  </on-error>
+</policies>

@@ -51,4 +51,9 @@ One-time consent: a human opens the login link from `getLoginLinks`, accepts in 
 - `index.md`, `R0.md`-`R6.md`: route-by-route results
 - Screenshots are not published (they contain real tenant data); command-line proof for every claim is in the R-files
 - `template/`: Bicep + scripts; **start with `template/AGENT-RUNBOOK.md`** (coding agent does the CLI work, a human does login, consent and portal checks)
+- `template/zoominfo/`: separate, no-deployment ZoomInfo MCP validation checklist, secret-free config example, and offline evidence gate
+- `template/zoominfo/test-readiness.html`: interactive visual of shared prerequisites, separate test lanes, and evidence gates
+- `template/zoominfo/portal-first-guide.md`: concise portal-by-portal customer walkthrough for the two separate OAuth test lanes
+- `template/zoominfo/policy-foundry-passthrough.xml` and `policy-apim-credential-manager.xml`: starting policy drafts with placeholders; not customer-ready or deployable as-is
+- `template/zoominfo/customer-replication-runbook.md`: step-by-step customer-owned replication procedure, safety gates, and known IaC/product boundaries
 - `knowledge-base.md`: background notes

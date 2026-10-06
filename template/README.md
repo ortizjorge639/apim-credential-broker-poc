@@ -4,6 +4,9 @@ Deploys, from scratch: APIM (Consumption) + Credential Manager provider/connecti
 
 Agent + human-handoff version: see AGENT-RUNBOOK.md.
 
+ZoomInfo's no-deployment validation checklist, config template, and evidence gate are in [`zoominfo/README.md`](zoominfo/README.md). They do not make live requests or contain credentials.
+For customer handoff, start with the portal-first [`zoominfo/portal-first-guide.md`](zoominfo/portal-first-guide.md), then use the detailed [`zoominfo/customer-replication-runbook.md`](zoominfo/customer-replication-runbook.md) and [`zoominfo/test-readiness.html`](zoominfo/test-readiness.html). The two ZoomInfo APIM policy files are parameterized drafts, not ready to deploy. The existing `main.bicep` and `deploy.sh` remain the Graph PoC, not a ready-to-deploy ZoomInfo integration.
+
 ## Run
 ```
 az login
